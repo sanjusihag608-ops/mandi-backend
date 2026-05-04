@@ -15,7 +15,12 @@ const db = admin.firestore();
 
 async function fetchData() {
   const url = "https://kisanekta.in/nohar-mandi-bhav-today/";
-  const { data } = await axios.get(url);
+  const { data } = await axios.get(url, {
+  timeout: 20000,
+  headers: {
+    "User-Agent": "Mozilla/5.0",
+  },
+});
   const $ = cheerio.load(data);
 
   let list = [];
