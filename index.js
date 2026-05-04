@@ -54,7 +54,8 @@ app.get("/update-mandi", async (req, res) => {
     const data = await fetchData();
 
     for (let item of data) {
-      await db.collection("mandi_prices").add(item);
+      const ref = db.collection("mandi_prices").doc(item.name);
+await ref.set(item);
     }
 
     res.send("Data Updated Successfully ✅");
