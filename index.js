@@ -5,6 +5,7 @@ const admin = require("firebase-admin");
 
 const app = express();
 
+// 🔐 Firebase key (Render ENV)
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 admin.initializeApp({
@@ -13,16 +14,18 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// 📥 Data fetch function
 async function fetchData() {
   const url = "https://kisanekta.in/nohar-mandi-bhav-today/";
-  const { data } = await axios.get(url, {
-  timeout: 20000,
-  headers: {
-    "User-Agent": "Mozilla/5.0",
-  },
-});
-  const $ = cheerio.load(data);
 
+  const { data } = await axios.get(url, {
+    timeout: 20000,
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+
+  const $ = cheerio.load(data);
   let list = [];
 
   $("table tr").each((i, el) => {
@@ -38,9 +41,9 @@ async function fetchData() {
     if (name) {
       list.push({
         name,
-        max_price: Number(max),
-        avg_price: Number(avg),
-        min_price: Number(min),
+        max_price: parseInt(max) || 0,
+        avg_price: parseInt(avg) || 0,
+        min_price: parseInt(min) || 0,
         date: new Date().toLocaleDateString(),
       });
     }
@@ -49,20 +52,33 @@ async function fetchData() {
   return list;
 }
 
+// 🚀 API route
 app.get("/update-mandi", async (req, res) => {
   try {
     const data = await fetchData();
 
     for (let item of data) {
-      const ref = db.collection("mandi_prices").doc(item.name);
-await ref.set(item);
+
+      // 🔥 CLEAN UNIQUE ID (duplicate fix)
+      const docId = item.name
+        .trim()
+        .replace(/\s+/g, "_")
+        .toLowerCase();
+
+      await db.collection("mandi_prices")
+        .doc(docId)
+        .set(item, { merge: true });
     }
 
     res.send("Data Updated Successfully ✅");
+
   } catch (err) {
     console.log(err);
     res.send("Error ❌");
   }
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+// 🟢 Server start
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
